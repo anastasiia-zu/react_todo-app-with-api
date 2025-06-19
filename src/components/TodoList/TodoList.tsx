@@ -1,20 +1,13 @@
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable max-len */
 import React from 'react';
-import classNames from 'classnames';
-
-interface Todo {
-  id: number;
-  userId: number;
-  title: string;
-  completed: boolean;
-}
+import { Todo } from '../../types/Todo';
+import { TodoItem } from '../TodoItem/TodoItem';
 
 interface Props {
   todos: Todo[];
   toggleTodo: (todoId: number, completed: boolean) => void;
   deleteTodo: (todoId: number) => void;
   loadingTodoIds: number[];
+  renameTodo: (todoId: number, newTitle: string) => Promise<void>;
 }
 
 export const TodoList: React.FC<Props> = ({
@@ -22,59 +15,20 @@ export const TodoList: React.FC<Props> = ({
   toggleTodo,
   deleteTodo,
   loadingTodoIds,
+  renameTodo,
 }) => {
   return (
     <section className="todoapp__main" data-cy="TodoList">
-      {todos.map(todo => {
-        const { id, title, completed } = todo;
-        const checkboxName = `checkbox-${id}`;
-
-        return (
-          <div
-            key={id}
-            data-cy="Todo"
-            className={classNames('todo', { completed })}
-          >
-            <label className="todo__status-label" htmlFor={checkboxName}>
-              <input
-                data-cy="TodoStatus"
-                type="checkbox"
-                id={checkboxName}
-                name={checkboxName}
-                className="todo__status"
-                checked={completed}
-                onChange={() => {
-                  toggleTodo(todo.id, !completed);
-                }}
-              />
-            </label>
-
-            <span data-cy="TodoTitle" className="todo__title">
-              {title}
-            </span>
-
-            {/* Remove button appears only on hover */}
-            <button
-              type="button"
-              className="todo__remove"
-              data-cy="TodoDelete"
-              onClick={() => deleteTodo(id)}
-            >
-              ×
-            </button>
-
-            <div
-              data-cy="TodoLoader"
-              className={classNames('modal overlay', {
-                'is-active': loadingTodoIds.includes(id) || id === 0,
-              })}
-            >
-              <div className="modal-background has-background-white-ter" />
-              <div className="loader" />
-            </div>
-          </div>
-        );
-      })}
+      {todos.map(todo => (
+        <TodoItem
+          key={todo.id}
+          todo={todo}
+          toggleTodo={toggleTodo}
+          deleteTodo={deleteTodo}
+          isLoading={loadingTodoIds.includes(todo.id) || todo.id === 0}
+          renameTodo={renameTodo}
+        />
+      ))}
     </section>
   );
 };

@@ -3,7 +3,13 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 import React, { useEffect, useState, useRef } from 'react';
 import { UserWarning } from './UserWarning';
-import { addTodo, deleteTodo, getTodos, USER_ID } from './api/todos';
+import {
+  addTodo,
+  deleteTodo,
+  getTodos,
+  updateTodo,
+  USER_ID,
+} from './api/todos';
 import { ErrorNotification } from './components/Error/ErrorNotification';
 import { TodoFooter } from './components/Footer/Footer';
 import { Header } from './components/Header/Header';
@@ -34,20 +40,13 @@ export const App: React.FC = () => {
   const [tempTodo, setTempTodo] = useState<Todo | null>(null);
   const [loadingTodoIds, setLoadingTodoIds] = useState<number[]>([]);
   const [newTitle, setNewTitle] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   const preparedTodos = handleFilteredTodos(todos, filterSelected);
   const activeTodos = handleFilteredTodos(todos, FilterOptions.active);
   const completedTodos = handleFilteredTodos(todos, FilterOptions.completed);
-
-  const toggleTodo = (todoId: number, completed: boolean) => {
-    setTodos(currentTodos =>
-      currentTodos.map(todo =>
-        todo.id === todoId ? { ...todo, completed } : todo,
-      ),
-    );
-  };
 
   const clearErrorMessage = () => {
     setErrorMessage(null);
@@ -59,6 +58,53 @@ export const App: React.FC = () => {
     setTimeout(() => {
       clearErrorMessage();
     }, 3000);
+  };
+
+  const toggleTodo = async (todoId: number, completed: boolean) => {
+    setLoadingTodoIds(current => [...current, todoId]);
+
+    try {
+      const updatedTodo = await updateTodo(todoId, { completed });
+
+      setTodos(current =>
+        current.map(todo => (todo.id === todoId ? updatedTodo : todo)),
+      );
+    } catch {
+      showError(Errors.UpdateTodo);
+    } finally {
+      setLoadingTodoIds(current => current.filter(id => id !== todoId));
+    }
+  };
+
+  const handleToggleAll = async () => {
+    const allCompleted = todos.every(todo => todo.completed);
+    const newStatus = !allCompleted;
+
+    const todosToUpdate = todos.filter(todo => todo.completed !== newStatus);
+
+    const updatedIds = todosToUpdate.map(todo => todo.id);
+
+    setLoadingTodoIds(current => [...current, ...updatedIds]);
+
+    const updatePromises = todosToUpdate.map(todo =>
+      updateTodo(todo.id, { completed: newStatus })
+        .then(updated => {
+          setTodos(current =>
+            current.map(currentTodo =>
+              currentTodo.id === updated.id ? updated : currentTodo,
+            ),
+          );
+        })
+        .catch(() => {
+          showError(Errors.UpdateTodo);
+        }),
+    );
+
+    await Promise.all(updatePromises);
+
+    setLoadingTodoIds(current =>
+      current.filter(id => !updatedIds.includes(id)),
+    );
   };
 
   const addNewTodo = async () => {
@@ -148,11 +194,26 @@ export const App: React.FC = () => {
     clearErrorMessage();
     getTodos()
       .then(setTodos)
-      .catch(() => {
-        showError(Errors.LoadTodos);
-      });
+      .catch(() => showError(Errors.LoadTodos))
+      .finally(() => setIsLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const renameTodo = async (todoId: number, title: string) => {
+    setLoadingTodoIds(current => [...current, todoId]);
+
+    try {
+      const updated = await updateTodo(todoId, { title });
+
+      setTodos(current =>
+        current.map(todo => (todo.id === todoId ? updated : todo)),
+      );
+    } catch {
+      showError(Errors.UpdateTodo);
+    } finally {
+      setLoadingTodoIds(current => current.filter(id => id !== todoId));
+    }
+  };
 
   if (!USER_ID) {
     return <UserWarning />;
@@ -169,6 +230,9 @@ export const App: React.FC = () => {
           addNewTodo={addNewTodo}
           tempTodo={tempTodo}
           inputRef={inputRef}
+          handleToggleAll={handleToggleAll}
+          todos={todos}
+          isLoading={isLoading}
         />
 
         <TodoList
@@ -176,6 +240,7 @@ export const App: React.FC = () => {
           toggleTodo={toggleTodo}
           deleteTodo={handleDeleteTodo}
           loadingTodoIds={loadingTodoIds}
+          renameTodo={renameTodo}
         />
 
         {todos.length > 0 && (

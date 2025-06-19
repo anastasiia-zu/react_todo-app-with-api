@@ -1,4 +1,5 @@
 import React, { RefObject } from 'react';
+import classNames from 'classnames';
 import { Todo } from '../../types/Todo';
 
 interface Props {
@@ -7,6 +8,9 @@ interface Props {
   addNewTodo: () => void;
   tempTodo: Todo | null;
   inputRef: RefObject<HTMLInputElement>;
+  handleToggleAll: () => void;
+  todos: Todo[];
+  isLoading: boolean;
 }
 
 export const Header: React.FC<Props> = ({
@@ -15,6 +19,9 @@ export const Header: React.FC<Props> = ({
   addNewTodo,
   tempTodo,
   inputRef,
+  handleToggleAll,
+  todos,
+  isLoading,
 }) => {
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -23,11 +30,16 @@ export const Header: React.FC<Props> = ({
 
   return (
     <header className="todoapp__header">
-      <button
-        type="button"
-        className="todoapp__toggle-all active"
-        data-cy="ToggleAllButton"
-      />
+      {!isLoading && todos.length > 0 && (
+        <button
+          type="button"
+          className={classNames('todoapp__toggle-all', {
+            active: todos.length > 0 && todos.every(todo => todo.completed),
+          })}
+          data-cy="ToggleAllButton"
+          onClick={handleToggleAll}
+        />
+      )}
 
       <form onSubmit={handleSubmit}>
         <input
