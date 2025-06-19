@@ -7,7 +7,7 @@ interface Props {
   toggleTodo: (todoId: number, completed: boolean) => void;
   deleteTodo: (todoId: number) => void;
   loadingTodoIds: number[];
-  renameTodo: (todoId: number, newTitle: string) => Promise<void>;
+  renameTodo: (todoId: number, newTitle: string) => Promise<boolean>;
 }
 
 export const TodoList: React.FC<Props> = ({

@@ -1,3 +1,5 @@
+/* eslint-disable prettier/prettier */
+/* eslint-disable max-len */
 /* eslint-disable jsx-a11y/label-has-associated-control */
 import React, { useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
@@ -8,7 +10,7 @@ interface Props {
   toggleTodo: (todoId: number, completed: boolean) => void;
   deleteTodo: (todoId: number) => void;
   isLoading: boolean;
-  renameTodo: (todoId: number, newTitle: string) => Promise<void>;
+  renameTodo: (todoId: number, newTitle: string) => Promise<boolean>;
 }
 
 export const TodoItem: React.FC<Props> = ({
@@ -23,7 +25,7 @@ export const TodoItem: React.FC<Props> = ({
 
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(title);
-
+  const hasSubmittedRename = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -32,30 +34,42 @@ export const TodoItem: React.FC<Props> = ({
     }
   }, [isEditing]);
 
-  const finishEditing = () => {
+  const finishEditing = async () => {
+    if (hasSubmittedRename.current) {
+      return;
+    }
+
+    hasSubmittedRename.current = true;
     const trimmed = editedTitle.trim();
 
     if (!trimmed) {
       deleteTodo(id);
+      hasSubmittedRename.current = false;
 
       return;
     }
 
     if (trimmed === title) {
       setIsEditing(false);
+      hasSubmittedRename.current = false;
 
       return;
     }
 
-    renameTodo(id, trimmed).finally(() => {
+    const result = await renameTodo(id, trimmed);
+
+    if (result !== false) {
       setIsEditing(false);
-    });
+    }
+
+    hasSubmittedRename.current = false;
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Escape') {
       setEditedTitle(title);
       setIsEditing(false);
+      hasSubmittedRename.current = false;
     }
 
     if (event.key === 'Enter') {

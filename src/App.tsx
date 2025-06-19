@@ -199,7 +199,7 @@ export const App: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const renameTodo = async (todoId: number, title: string) => {
+  const renameTodo = async (todoId: number, title: string): Promise<boolean> => {
     setLoadingTodoIds(current => [...current, todoId]);
 
     try {
@@ -208,8 +208,12 @@ export const App: React.FC = () => {
       setTodos(current =>
         current.map(todo => (todo.id === todoId ? updated : todo)),
       );
+
+      return true;
     } catch {
       showError(Errors.UpdateTodo);
+
+      return false;
     } finally {
       setLoadingTodoIds(current => current.filter(id => id !== todoId));
     }
